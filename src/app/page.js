@@ -1,64 +1,90 @@
-'use client'; // 聲明這是一個客戶端組件，表示此代碼將在瀏覽器中執行，而不是伺服器端
+'use client'; // 声明这是一个客户端组件，表示此代码将会在浏览器端执行，而不是服务器端
 
-// 導入必要的模組和組件
-import Image from "next/image"; // Next.js的圖片組件，用於優化圖片載入
-import { useState } from "react"; // React的useState Hook，用於在函數組件中管理狀態
-import TaskList from "../components/TaskList"; // 導入自定義的TaskList組件，用於顯示任務列表
+// 导入必要的模块和组件
+import { useState, useEffect } from "react"; // React的useState Hook，用于在函数组件中管理状态
+import TaskList from "../components/TaskList"; // 导入自定义的TaskList组件，用于显示任务列表
 
 /**
- * Home組件：任務管理應用的主要頁面
+ * Home组件：任务管理应用的主页
  * 功能：
- * 1. 允許用戶輸入新任務
- * 2. 管理任務列表狀態
- * 3. 顯示所有已添加的任務
+ * 1. 允许用户输入新任务
+ * 2. 管理任务列表状态
+ * 3. 显示所有已添加的任务
  */
 export default function Home() {
-  // 狀態管理
-  const [tasks, setTasks] = useState([]); // 初始化空任務陣列，用於存儲所有任務
-  const [newTask, setNewTask] = useState(''); // 初始化空字符串，用於存儲輸入框中的新任務文本
+  // 状态管理
+  const [tasks, setTasks] = useState([]); // 初始化空任务数组，用于存储所有任务
+  const [newTask, setNewTask] = useState(''); // 初始化空字符串，用于存储输入框中的新任务内容
+  const [nextId, setNextId] = useState(1); // 状态保存下一个任务ID
+
+  // 读取本地存储的任务
+  useEffect(() => {
+    const savedTasks = JSON.parse(localStorage.getItem('tasks')) || []; // 从localStorage获取任务列表
+    setTasks(savedTasks); // 设置任务列表
+    const maxId = savedTasks.reduce((max, task) => Math.max(max, task.id), 0); // 获取最大ID
+    setNextId(maxId + 1); // 更新下一个ID
+  }, []);          
 
   /**
-   * addTask函數：處理添加新任務的邏輯
-   * 步驟：
-   * 1. 記錄當前任務列表狀態
-   * 2. 將新任務添加到列表中
-   * 3. 更新狀態
-   * 4. 清空輸入框
+   * addTask函数：处理添加新任务的逻辑
+   * 步骤：
+   * 1. 记录当前任务列表状态
+   * 2. 将新任务添加到列表中
+   * 3. 更新状态
+   * 4. 清空输入框
    */
   const addTask = () => {
-    console.log("Before:", tasks); // 輸出添加前的任務列表，用於調試
-    console.log("NewTask:", newTask) // 輸出要添加的新任務內容
-    const updatedTasks = [...tasks, newTask]; // 使用展開運算符創建新陣列，保持原陣列不變（不可變性原則）
-    setTasks(updatedTasks); // 使用state更新函數更新任務列表
-    console.log("After:", updatedTasks); // 輸出更新後的任務列表，用於確認更新成功
-    setNewTask(''); // 重置輸入框為空，準備下一次輸入
-  }
+    if (!newTask.trim()) return; // 如果任务内容为空，则不添加
 
-  // 返回組件的JSX結構
+    console.log("Before:", tasks); // 输出添加前的任务列表，用于调试
+    console.log("NewTask:", newTask); // 输出要添加的新任务内容
+
+    const newTaskObj = {
+      id: nextId,        // 使用下一个ID
+      description: newTask, // 新任务描述
+    };
+
+    const updatedTasks = [...tasks, newTaskObj]; // 使用展开运算符创建新数组，保持原数组不变
+    setTasks(updatedTasks); // 更新任务列表
+    console.log("After:", updatedTasks); // 输出更新后的任务列表，用于确认更新成功
+
+    setNewTask(''); // 重置输入框为空，准备下一次输入
+    setNextId(nextId + 1); // 更新下一个ID
+    localStorage.setItem('tasks', JSON.stringify(updatedTasks)); // 更新本地存储
+  };
+
+  // 处理删除任务
+  const handleDelete = (index) => {
+    const updatedTasks = tasks.filter((_, i) => i !== index); // 过滤掉要删除的任务
+    setTasks(updatedTasks); // 更新任务列表
+    localStorage.setItem('tasks', JSON.stringify(updatedTasks)); // 更新本地存储
+  };
+
+  // 返回组件的JSX结构
   return (
-    // main容器：整個應用的主要區域
-    <main className="p-4"> {/* 設置內邊距為4個單位 */}
-      {/* 頁面標題 */}
+    // main容器：整个应用的主要区域
+    <main className="p-4 max-w-md mx-auto"> {/* 设置内边距为4个单位 */}
+      {/* 页面标题 */}
       <h1 className="text-2xl font-bold">Task Board</h1>
 
-      {/* 任務輸入區域：包含輸入框和添加按鈕 */}
-      <div className="flex gap-2 mb-4"> {/* 使用flex布局，設置間距和下邊距 */}
-        {/* 任務輸入框 */}
+      {/* 任务输入区域：包含输入框和添加按钮 */}
+      <div className="flex gap-2 mb-4"> {/* 使用flex布局，设置间距和下边距 */}
+        {/* 任务输入框 */}
         <input
-          className="boarder p-2 flex-1" // 設置邊框、內邊距，並佔用剩餘空間
+          className="border p-2 flex-1" // 设置边框、内边距，并占用剩余空间
           placeholder="Enter a task" // 提示文本
-          value={newTask} // 將輸入框的值與newTask狀態綁定
-          onChange={(e) => setNewTask(e.target.value)} // 當輸入內容改變時更新newTask狀態
+          value={newTask} // 将输入框的值与newTask状态绑定
+          onChange={(e) => setNewTask(e.target.value)} // 当输入内容改变时更新newTask状态
         />
-        {/* 添加任務按鈕 */}
+        {/* 添加任务按钮 */}
         <button
-          className="bg-blue-500 text-white px-4" // 設置藍色背景、白色文字和水平內邊距
-          onClick={addTask} // 點擊時觸發addTask函數
+          className="bg-blue-500 text-white px-4" // 设置蓝色背景、白色文字和水平内边距
+          onClick={addTask} // 点击时触发addTask函数
         >Add</button>
       </div>
-      
-      {/* 任務列表區域 */}
-      <TaskList tasks={tasks} /> {/* 將任務陣列作為props傳遞給TaskList組件 */}
+
+      {/* 任务列表区域 */}
+      <TaskList tasks={tasks} onDelete={handleDelete} /> {/* 将任务数组和删除函数传递给TaskList组件 */}
     </main>
   );
 }
